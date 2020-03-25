@@ -1,11 +1,13 @@
 package cn.isuyu.redis.distrited.lock.controller;
 
-import cn.isuyu.redis.distrited.lock.utils.RedisTools;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * @Author NieZhiLiang
@@ -21,7 +23,7 @@ public class IndexController {
     public final static Long STOCK_NUM = 100l;
 
     @Autowired
-    private RedisTools redisTools;
+    private StringRedisTemplate redisTemplate;
 
     @Autowired
     private RedissonClient redissonClient;
@@ -32,7 +34,7 @@ public class IndexController {
      */
     @GetMapping(value = "init")
     public String initStock() {
-        redisTools.initCount(MY_STOCK,STOCK_NUM);
+        redisTemplate.opsForValue().set(MY_STOCK,String.valueOf(STOCK_NUM));
         return "库存初始化成功";
     }
 
@@ -44,15 +46,22 @@ public class IndexController {
     public String killProduct() throws InterruptedException {
 
         RLock rLock = redissonClient.getLock("myLock");
-
-        rLock.lock();
-        try {
-            Thread.sleep(5000);
-            Long stock = redisTools.decrementCount(MY_STOCK);
-            System.out.println("剩余库存:"+stock);
-        } finally {
-            rLock.unlock();
-        }
+        rLock.lock(10, TimeUnit.SECONDS);
+//        synchronized (this) {
+        Thread.sleep(300);
+            try {
+                Integer stock = Integer.parseInt(redisTemplate.opsForValue().get(MY_STOCK));
+                if (stock < 1) {
+                    System.out.println("秒杀失败，商品已被全部秒杀,");
+                } else {
+                    stock = stock - 1;
+                    redisTemplate.opsForValue().set(MY_STOCK,String.valueOf(stock));
+                    System.out.println("剩余库存:"+stock);
+                }
+            } finally {
+                rLock.unlock();
+            }
+//        }
         return "success";
 
     }
