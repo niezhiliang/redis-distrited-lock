@@ -18,15 +18,18 @@ private void lock(long leaseTime, TimeUnit unit, boolean interruptibly) throws I
         
         try {
             while (true) {
+                //循环获取锁 直到获取成功
                 ttl = tryAcquire(leaseTime, unit, threadId);
                 // lock acquired
                 if (ttl == null) {
                     break;
                 }
 
-                // waiting for message
+                // waiting for message 
+                //过期时间大于0
                 if (ttl >= 0) {
                     try {
+                        //当前线程进入阻塞状态，当锁过期或被释放的时候再唤醒当前线程
                         future.getNow().getLatch().tryAcquire(ttl, TimeUnit.MILLISECONDS);
                     } catch (InterruptedException e) {
                         if (interruptibly) {
@@ -34,18 +37,21 @@ private void lock(long leaseTime, TimeUnit unit, boolean interruptibly) throws I
                         }
                         future.getNow().getLatch().tryAcquire(ttl, TimeUnit.MILLISECONDS);
                     }
+                //如果锁自动过期啦
                 } else {
+                    //如果是公平锁
                     if (interruptibly) {
                         future.getNow().getLatch().acquire();
+                    //非公平锁
                     } else {
                         future.getNow().getLatch().acquireUninterruptibly();
                     }
                 }
             }
         } finally {
+            //取消当前线程的订阅
             unsubscribe(future, threadId);
         }
-//        get(lockAsync(leaseTime, unit));
     }
 ```
 

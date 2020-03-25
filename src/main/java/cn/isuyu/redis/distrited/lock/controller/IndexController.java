@@ -46,9 +46,8 @@ public class IndexController {
     public String killProduct() throws InterruptedException {
 
         RLock rLock = redissonClient.getLock("myLock");
-        rLock.lock(10, TimeUnit.SECONDS);
+        rLock.lock(1000000, TimeUnit.SECONDS);
 //        synchronized (this) {
-        Thread.sleep(300);
             try {
                 Integer stock = Integer.parseInt(redisTemplate.opsForValue().get(MY_STOCK));
                 if (stock < 1) {
