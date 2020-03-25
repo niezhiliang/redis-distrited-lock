@@ -3,15 +3,12 @@ package cn.isuyu.redis.distrited.lock.controller;
 import org.redisson.api.RLock;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
-import org.redisson.api.listener.MessageListener;
 import org.redisson.codec.SerializationCodec;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.listener.Topic;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -71,31 +68,13 @@ public class IndexController {
     }
 
     /**
-     * 订阅监听redis消息
-     * @return
-     */
-    @GetMapping(value = "listen")
-    public String listen() {
-       RTopic rTopic = redissonClient.getTopic("myTopic",new SerializationCodec());
-       rTopic.addListener(String.class,new MessageListener() {
-           @Override
-           public void onMessage(CharSequence channel, Object msg) {
-               System.out.println("onMessage:"+channel+"; Thread: "+Thread.currentThread().toString());
-               System.out.println(msg +"  "+ new Date());
-           }
-       });
-       return "success";
-    }
-
-    /**
      * redis发布消息
      * @return
      */
     @GetMapping(value = "pub")
-    public String publish() {
+    public String publish(String msg) {
         RTopic rTopic = redissonClient.getTopic("myTopic",new SerializationCodec());
-        rTopic.publish("hello");
-        rTopic.publish("world");
+        rTopic.publish(msg);
         return "success";
     }
 
